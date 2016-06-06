@@ -9,24 +9,25 @@ dexpit <- function(x){
     expit(x)*(1 - expit(x))
 }
 
-## gen_my.data: Simulate data
+## gen_sim.data: Simulate data
 ## Output: a list of 2 objects: 
 ##      - $eta: original eta values used to generate simulation data
 ##      - $sim.Matrix: n*p size matrix containing in order: zi, 1, xi
-gen_my.data <- function(x){
+gen_sim.data <- function(x){
     n <- 1000
     p <- 4
     prob <- 0.5
-    eta_0 <- 1
-    eta <- signif(runif(4,-3,3),digits = 2)  # Generate random eta between -3,3 with 2 significant digits
+    eta <- c(0.25,-0.25,0.10,-0.45,0.75)  # eta: The target truth/parameter
     
     randMatrix <- matrix(rbinom(n*p,1,prob),n,p) # x1, x2,...,xn
-    zi <- rbinom(n,1,expit(rowSums(sweep(randMatrix,MARGIN=2,eta,'*')) + eta_0)) # zi ~ expit(eta'*x + eta_0)
+    # Note: double transpose operation is just multiplying columns by elements of vector... but fast
+    # zi <- expit(rowSums(sweep(randMatrix,MARGIN=2,eta[2:length(eta)],'*') + eta[1]))
+    zi <- rbinom(n,1,expit(rowSums(t(t(randMatrix) * eta[2:length(eta)])) + eta[1])) # zi ~ expit(eta'*x + eta_0)
     sim.Matrix <- cbind(zi,        # zi's
                      rep(1,n),     # x0
                      randMatrix)   # x1,x2,...,xn
     
-    return(list(eta=c(eta_0,eta),sim.Matrix=sim.Matrix))
+    return(list(eta=eta,sim.Matrix=sim.Matrix))
 }
 
 
@@ -37,7 +38,7 @@ fr <- function(eta, sim.Matrix){
     # OUTPUTS: f(eta) as column vector
     # ----------------
     # Extract x1 to xn
-    xi <- sim.Matrix[,3:6] # x1, ..., x4
+    xi <- sim.Matrix[,3:nrow(sim.Matrix)] # x1, ..., x4
 
     # Evaluate f(eta); eta[1] is eta_0
     zi.minus.pi <- sim.Matrix[,1] - expit(eta[1] + rowSums(sweep(xi,MARGIN=2,eta[2:length(eta)],'*'))) # zi - xi*eta
@@ -57,8 +58,9 @@ grr <- function(eta, sim.Matrix){
     
     # Iteratively generate Jacobian matrix and add to allocated matrix
     for (i in 1:nrow(sim.Matrix)){
-        add.me <- sweep(ones.matrix,MARGIN=1,sim.Matrix[i,2:6],'*')
-        add.me <- sweep(add.me,MARGIN=2,sim.Matrix[i,2:6],'*')
+        #add.me <- sweep(ones.matrix,MARGIN=1,sim.Matrix[i,2:6],'*')
+        add.me <- rep(1,5) %*% t.default(sim.Matrix[i,2:6])
+        add.me <- sweep(add.me,MARGIN=2,sim.Matrix[i,2:6],'*') #### REPLACE ME WITH TRANSPOSE ### 
         add.me <- -1 * add.me * dexpit(eta[1] + sum(sim.Matrix[i,3:6] * eta[2:5]))
         
         ans <- ans + add.me
@@ -104,7 +106,7 @@ sqr_diffs <- rep(0,iter)
 ptm <- proc.time() #let's time this slow code...
 
 for (i in 1:iter){
-    sim.data <- gen_my.data()
+    sim.data <- gen_sim.data()
     sqr_diffs[i] <- sqr_diffs[i] + newtonRaphson(initial_eta,sim.data$eta,sim.data$sim.Matrix)
     
     if (i %% 2 == 0)
