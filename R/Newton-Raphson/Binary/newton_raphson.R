@@ -73,7 +73,7 @@ grr <- function(eta, sim.Matrix){
 newtonRaphson <- function(eta_0,real_eta,sim.Matrix){
     # Initial setup
     count <- 0
-    max_iterations <- 1000
+    max_iterations <- 100
     diverged <- FALSE 
     
     # Set eta_t using eta_0 input, and then update eta_t.plus.one. 
@@ -98,16 +98,17 @@ newtonRaphson <- function(eta_0,real_eta,sim.Matrix){
     }
   
     # Return: eta_t.plus.one, converge or diverge? 
-   data.frame(eta_hat=matrix(eta_t.plus.one,1,5),diverged=diverged)
+   data.frame(eta_hat=matrix(eta_t.plus.one,1,5),diverged=diverged,iterations=count)
 }
 
 #newtonRaphson(myEta,c(eta_0,eta),sim.Matrix)
-iter <- 50
+iter <- 1000
 initial_eta <- c(0,0,0,0,0)
-results <- data.frame(eta_hat=matrix(0,iter,5),diverged=rep(NA,iter))
+results <- data.frame(eta_hat=matrix(0,iter,5),diverged=rep(NA,iter),iterations=rep(NA,iter))
+set.seed(187536841) # mean(runif(1000,-10103203,390439843))
+
 ptm <- proc.time() #let's time this slow code...
 
-set.seed(2)
 for (i in 1:iter){
   
     sim.data <- gen_sim.data()
@@ -116,5 +117,15 @@ for (i in 1:iter){
     cat(100*i/iter, "% done", "\n")
 }
 
+## Results: avg. parameter, bias, variance, mean^2 error
+sim.data$eta
+divergers <- which(results$diverged == TRUE)
+eta_hat <- results[,1:5]
+eta_hat.avg <- apply(eta_hat,2,mean)
+eta_hat.bias <- (eta_hat.avg - sim.data$eta)
+eta_hat.mean2 <- eta_hat.bias^2 + apply(eta_hat,2,var)
+
+## Tabulated results
+data.frame(true_eta=sim.data$eta,eta_hat.avg,eta_hat.bias,eta_hat.mean2)
+
 proc.time() - ptm
-results
