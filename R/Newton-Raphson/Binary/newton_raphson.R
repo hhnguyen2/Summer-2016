@@ -128,8 +128,4 @@ eta_hat.mean2 <- eta_hat.bias^2 + apply(eta_hat,2,var)
 ## Tabulated results
 data.frame(true_eta=sim.data$eta,eta_hat.avg,eta_hat.bias,eta_hat.mean2)
 
-<<<<<<< HEAD
 proc.time() - ptm
-=======
-roc.time() - ptm
->>>>>>> 8676b6608c7c5b30ae9c2f2f04ee1d0d3bcd9e62
