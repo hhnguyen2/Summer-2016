@@ -74,6 +74,7 @@ newtonRaphson <- function(eta_0,real_eta,sim.Matrix){
     # Initial setup
     count <- 0
     max_iterations <- 1000
+    diverged <- FALSE 
     
     # Set eta_t using eta_0 input, and then update eta_t.plus.one. 
     eta_t <- eta_0
@@ -89,40 +90,31 @@ newtonRaphson <- function(eta_0,real_eta,sim.Matrix){
         # Update eta_t
         eta_t <- eta_t.plus.one
         eta_t.plus.one <- eta_t - (grr(eta_t,sim.Matrix) %*% fr(eta_t,sim.Matrix))
-        
-        if(count > 950){
-            print("uh oh")
-        }
     }
     
-    #cat("Total iterations: ", count, "\n",
-    #    "Eta_t.plus.one: ", eta_t.plus.one, "\n",
-    #    "Real eta: ", real_eta, "\n",
-    #    "Squared eta diff ", norm(real_eta - eta_t.plus.one), "F")
-    norm(eta_t.plus.one - real_eta,"F")
+    if (count >= max_iterations){
+      diverged <- TRUE
+      print("Another one bites the dust.")
+    }
+  
+    # Return: eta_t.plus.one, converge or diverge? 
+   data.frame(eta_hat=matrix(eta_t.plus.one,1,5),diverged=diverged)
 }
 
 #newtonRaphson(myEta,c(eta_0,eta),sim.Matrix)
 iter <- 50
 initial_eta <- c(0,0,0,0,0)
-sqr_diffs <- rep(0,iter)
+results <- data.frame(eta_hat=matrix(0,iter,5),diverged=rep(NA,iter))
 ptm <- proc.time() #let's time this slow code...
 
+set.seed(2)
 for (i in 1:iter){
   
     sim.data <- gen_sim.data()
-    sqr_diffs[i] <- sqr_diffs[i] + newtonRaphson(initial_eta,sim.data$eta,sim.data$sim.Matrix)
+    results[i,] <- newtonRaphson(initial_eta,sim.data$eta,sim.data$sim.Matrix)
     
-    if (i %% 2 == 0)
-        print(i)
-}
-
-
-if ((sqr_diffs == sqr_diffs2) + 0 == 1000){
-  print("Congrats! Your code is reproducible.")
+    cat(100*i/iter, "% done", "\n")
 }
 
 proc.time() - ptm
-hist(sqr_diffs,breaks=15)
-summary(sqr_diffs)
-cat("SD: ", sd(sqr_diffs), "\n")
+results
