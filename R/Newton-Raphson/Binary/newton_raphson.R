@@ -13,14 +13,14 @@ dexpit <- function(x){
 ## Output: a list of 2 objects: 
 ##      - $eta: original eta values used to generate simulation data
 ##      - $sim.Matrix: n*p size matrix containing in order: zi, 1, xi
-gen_sim.data <- function(x){
+gen_sim.data <- function(){
     n <- 1000
     p <- 4
     prob <- 0.5
     eta <- c(0.25,-0.25,0.10,-0.45,0.75)  # eta: The target truth/parameter
+    
     randMatrix <- matrix(rbinom(n*p,1,prob),n,p) # x1, x2,...,xn
-    # Note: double transpose operation is just multiplying columns by elements of vector... but fast
-    # zi <- expit(rowSums(sweep(randMatrix,MARGIN=2,eta[2:length(eta)],'*') + eta[1]))
+    # Note: double transpose operation is just multiplying each column by corresponding elements of vector... but fast
     zi <- rbinom(n,1,expit(rowSums(t(t(randMatrix) * eta[2:length(eta)])) + eta[1])) # zi ~ expit(eta'*x + eta_0)
     sim.Matrix <- cbind(zi,        # zi's
                      rep(1,n),     # x0
@@ -40,13 +40,7 @@ fr <- function(eta, sim.Matrix){
     xi <- sim.Matrix[,3:ncol(sim.Matrix)] # x1, ..., x4
 
     # Evaluate f(eta); eta[1] is eta_0
-    ##### hey optimize this 
-    ####
-    #        plsssssssssss
-    #
-    #
-    #########
-    zi.minus.pi <- sim.Matrix[,1] - expit(eta[1] + rowSums(sweep(xi,MARGIN=2,eta[2:length(eta)],'*'))) # zi - xi*eta
+    zi.minus.pi <- sim.Matrix[,1] - expit(eta[1] + rowSums(t(t(xi) * eta[2:length(eta)]))) # zi - xi*eta
     
     # Output answer as column vector
     as.matrix(colSums(sim.Matrix[,2:6] * zi.minus.pi))
@@ -63,10 +57,7 @@ grr <- function(eta, sim.Matrix){
     
     # Iteratively generate Jacobian matrix and add to allocated matrix
     for (i in 1:nrow(sim.Matrix)){
-        #add.me <- sweep(ones.matrix,MARGIN=1,sim.Matrix[i,2:6],'*')
-        #add.me <- sweep(add.me,MARGIN=2,sim.Matrix[i,2:6],'*') #### REPLACE ME WITH TRANSPOSE ### 
-        #add.me <- matrix(rep(sim.Matrix[i,2:6],5),5,5)
-        #add.me <- t(t(add.me) * sim.Matrix[i,2:6])
+        # Analytic coeff is outer product of xi*t(xi), so take adv of this. 
         add.me <- sim.Matrix[i,2:6] %*% t(sim.Matrix[i,2:6])
         add.me <- -1 * add.me * dexpit(eta[1] + sum(sim.Matrix[i,3:6] * eta[2:5]))
         
@@ -112,17 +103,23 @@ newtonRaphson <- function(eta_0,real_eta,sim.Matrix){
 }
 
 #newtonRaphson(myEta,c(eta_0,eta),sim.Matrix)
-iter <- 1000
+iter <- 50
 initial_eta <- c(0,0,0,0,0)
 sqr_diffs <- rep(0,iter)
 ptm <- proc.time() #let's time this slow code...
 
 for (i in 1:iter){
+  
     sim.data <- gen_sim.data()
     sqr_diffs[i] <- sqr_diffs[i] + newtonRaphson(initial_eta,sim.data$eta,sim.data$sim.Matrix)
     
     if (i %% 2 == 0)
         print(i)
+}
+
+
+if ((sqr_diffs == sqr_diffs2) + 0 == 1000){
+  print("Congrats! Your code is reproducible.")
 }
 
 proc.time() - ptm
