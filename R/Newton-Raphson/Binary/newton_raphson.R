@@ -1,12 +1,12 @@
 ## Define expit and dexpit
 # expit: e^x/(1+e^x)
 expit <- function(x){
-  exp(x)/(1+exp(x))
+  exp(x)/{1+exp(x)}
 }
 
 # dexpit: expit'(x), or expit(x)(1-expit(x))
 dexpit <- function(x){
-    expit(x)*(1 - expit(x))
+    expit(x)*{1 - expit(x)}
 }
 
 ## gen_sim.data: Simulate data
@@ -18,7 +18,6 @@ gen_sim.data <- function(x){
     p <- 4
     prob <- 0.5
     eta <- c(0.25,-0.25,0.10,-0.45,0.75)  # eta: The target truth/parameter
-    
     randMatrix <- matrix(rbinom(n*p,1,prob),n,p) # x1, x2,...,xn
     # Note: double transpose operation is just multiplying columns by elements of vector... but fast
     # zi <- expit(rowSums(sweep(randMatrix,MARGIN=2,eta[2:length(eta)],'*') + eta[1]))
@@ -38,9 +37,15 @@ fr <- function(eta, sim.Matrix){
     # OUTPUTS: f(eta) as column vector
     # ----------------
     # Extract x1 to xn
-    xi <- sim.Matrix[,3:nrow(sim.Matrix)] # x1, ..., x4
+    xi <- sim.Matrix[,3:ncol(sim.Matrix)] # x1, ..., x4
 
     # Evaluate f(eta); eta[1] is eta_0
+    ##### hey optimize this 
+    ####
+    #        plsssssssssss
+    #
+    #
+    #########
     zi.minus.pi <- sim.Matrix[,1] - expit(eta[1] + rowSums(sweep(xi,MARGIN=2,eta[2:length(eta)],'*'))) # zi - xi*eta
     
     # Output answer as column vector
@@ -54,27 +59,30 @@ grr <- function(eta, sim.Matrix){
     # ----------------
     # Allocate empty answer matrix, should be 5x5
     ans <- matrix(0,length(eta),length(eta))
-    ones.matrix <- matrix(1,length(eta),length(eta))
+    #ones.matrix <- matrix(1,length(eta),length(eta))
     
     # Iteratively generate Jacobian matrix and add to allocated matrix
     for (i in 1:nrow(sim.Matrix)){
         #add.me <- sweep(ones.matrix,MARGIN=1,sim.Matrix[i,2:6],'*')
-        add.me <- rep(1,5) %*% t.default(sim.Matrix[i,2:6])
-        add.me <- sweep(add.me,MARGIN=2,sim.Matrix[i,2:6],'*') #### REPLACE ME WITH TRANSPOSE ### 
+        #add.me <- sweep(add.me,MARGIN=2,sim.Matrix[i,2:6],'*') #### REPLACE ME WITH TRANSPOSE ### 
+        #add.me <- matrix(rep(sim.Matrix[i,2:6],5),5,5)
+        #add.me <- t(t(add.me) * sim.Matrix[i,2:6])
+        add.me <- sim.Matrix[i,2:6] %*% t(sim.Matrix[i,2:6])
         add.me <- -1 * add.me * dexpit(eta[1] + sum(sim.Matrix[i,3:6] * eta[2:5]))
         
         ans <- ans + add.me
     }
     
     # Evaluate inverse Jacobian. Return NA matrix if singular. 
-    tryCatch(solve(ans), error=function(e) matrix(NA,5,5))
+    #tryCatch(solve(ans), error=function(e) matrix(NA,5,5))
+    solve(ans)
 }
 
 # Newton Raphson to solve for eta
 newtonRaphson <- function(eta_0,real_eta,sim.Matrix){
     # Initial setup
     count <- 0
-    max_iterations <- 100
+    max_iterations <- 1000
     
     # Set eta_t using eta_0 input, and then update eta_t.plus.one. 
     eta_t <- eta_0
@@ -90,6 +98,10 @@ newtonRaphson <- function(eta_0,real_eta,sim.Matrix){
         # Update eta_t
         eta_t <- eta_t.plus.one
         eta_t.plus.one <- eta_t - (grr(eta_t,sim.Matrix) %*% fr(eta_t,sim.Matrix))
+        
+        if(count > 950){
+            print("uh oh")
+        }
     }
     
     #cat("Total iterations: ", count, "\n",
@@ -100,7 +112,7 @@ newtonRaphson <- function(eta_0,real_eta,sim.Matrix){
 }
 
 #newtonRaphson(myEta,c(eta_0,eta),sim.Matrix)
-iter <- 750
+iter <- 1000
 initial_eta <- c(0,0,0,0,0)
 sqr_diffs <- rep(0,iter)
 ptm <- proc.time() #let's time this slow code...
