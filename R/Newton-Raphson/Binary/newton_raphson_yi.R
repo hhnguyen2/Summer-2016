@@ -1,4 +1,4 @@
-## Dependencies: Call libraries
+## Dependencies: Call graphing libraries for histograms
 library(ggplot2)
 library(grid)
 library(gridExtra)
@@ -76,14 +76,14 @@ gen_sim.data <- function(){
   alpha <- c(0.25,-0.25,0.10,-0.45,0.75)  # alpha: The target truth/parameter
   
   randMatrix <- matrix(rbinom(n*p,1,prob),n,p) # x1, x2,...,xn
-  # Note: double transpose operation is just multiplying each column by corresponding elements of vector... but fast
+  # Note: double transpose operation is just multiplying each column by corresponding elements of vector
   sd <- 0.25 # SD of gaussian noise, epsilon
   yi <- expit1m(rowSums(t(t(randMatrix) * alpha[-1])) + alpha[1]) + rnorm(n,0,sd)
   # Ensure that -1 <= y <= 1
-  while(sum(abs(yi) > 1) > 0){
-    yi <- expit1m(rowSums(t(t(randMatrix) * alpha[-1])) + alpha[1]) + rnorm(n,0,sd)
+  while(sum(abs(yi) > 1) > 0){ # If the abs value of any y is greater than 1
+    # Then redo the randomization
+    yi <- expit1m(rowSums(t(t(randMatrix) * alpha[-1])) + alpha[1]) + rnorm(n,0,sd) 
   }
-  
   sim.Matrix <- cbind(yi,           # yi's
                       rep(1,n),     # x0
                       randMatrix)   # x1,x2,...,xn
@@ -101,7 +101,7 @@ fr <- function(alpha, sim.Matrix){
   # Extract x1 to xn
   xi <- sim.Matrix[,3:ncol(sim.Matrix)] # x1, ..., x4
   
-  # Evaluate f(alpha); alpha[1] is alpha_0; alpha[-1] is alpha_1...
+  # Evaluate f(alpha); alpha[1] is alpha_0; alpha[-1] is alpha_1,...,alpha_4
   yi.minus.pi <- sim.Matrix[,1] - expit1m(alpha[1] + rowSums(t(t(xi) * alpha[-1]))) # yi - xi*alpha
   
   # Output answer as column vector
@@ -115,7 +115,7 @@ grr <- function(alpha, sim.Matrix){
   # ----------------
   # Allocate empty answer matrix, should be 5x5
   ans <- matrix(0,length(alpha),length(alpha))
-
+  
   # Iteratively generate Jacobian matrix and add to allocated matrix
   for (i in 1:nrow(sim.Matrix)){
     # Analytic coeff is outer product of xi*t(xi), so take adv of this. 
@@ -135,6 +135,7 @@ newtonRaphson <- function(alpha_0,real_alpha,sim.Matrix){
   count <- 0
   max_iterations <- 100
   diverged <- FALSE 
+  tolerance <- 10^(-15)
   
   # Set alpha_t using alpha_0 input, and then update alpha_t.plus.one. 
   alpha_t <- alpha_0
@@ -143,7 +144,7 @@ newtonRaphson <- function(alpha_0,real_alpha,sim.Matrix){
   # Loop until squared diff between alpha_t and alpha_t.plus.one is minimized
   #      or maximum alloted iterations is reached
   while(count < max_iterations &&
-        norm(matrix(alpha_t.plus.one - alpha_t), "F") > .Machine$double.eps){
+        norm(matrix(alpha_t.plus.one - alpha_t), "F") > tolerance){
     # Increment counter
     count <- count + 1
     
@@ -163,12 +164,13 @@ newtonRaphson <- function(alpha_0,real_alpha,sim.Matrix){
 
 ## CONDUCT SIMULATION
 # Set initial conditions
-iter <- 100
+iter <- 1000
 initial_alpha <- c(0,0,0,0,0)
 results <- data.frame(alpha_hat=matrix(0,iter,5),diverged=rep(NA,iter),iterations=rep(NA,iter))
 #set.seed(187536841) # mean(runif(1000,-10103203,390439843))
 #set.seed(146150199) # mean(runif(1000,-101032023,390439843))
 #set.seed(-316198416) # mean(runif(1000,-1010320223,390439843))
+set.seed(982839)
 
 # Run simulation 
 for (i in 1:iter){
@@ -185,13 +187,15 @@ alpha_hat <- results[,1:5]
 alpha_hat.avg <- apply(alpha_hat,2,mean)
 alpha_hat.bias <- (alpha_hat.avg - true_alpha)
 alpha_hat.pcbias <- (alpha_hat.bias / true_alpha) * 100
-alpha_hat.mean2 <- alpha_hat.bias^2 + apply(alpha_hat,2,var)
+alpha_hat.var <- apply(alpha_hat,2,var)
+alpha_hat.mean2 <- alpha_hat.bias^2 + alpha_hat.var
 
 ## Tabulated results
 results.summary <- data.frame(true_alpha=true_alpha,
                               avg_value=alpha_hat.avg,
                               bias=alpha_hat.bias,
                               pc_bias=alpha_hat.pcbias,
+                              var=alpha_hat.var,
                               mean2_err=alpha_hat.mean2)
 
 ## Make histogram, ah1p means alpha_hat.1 plot, etc.
