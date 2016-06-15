@@ -80,8 +80,8 @@ gen_sim.data <- function(){
   sd <- 0.25 # SD of gaussian noise, epsilon
   yi <- expit1m(rowSums(t(t(randMatrix) * alpha[-1])) + alpha[1]) + rnorm(n,0,sd)
   # Ensure that -1 <= y <= 1
-  while(sum(abs(yi) > 1) > 0){ # If the abs value of any y is greater than 1
-    # Then redo the randomization
+  while(sum(abs(yi) > 1) > 0){ 
+    # Redo the randomization if the abs value of any y is greater than 1
     yi <- expit1m(rowSums(t(t(randMatrix) * alpha[-1])) + alpha[1]) + rnorm(n,0,sd) 
   }
   sim.Matrix <- cbind(yi,           # yi's
@@ -158,7 +158,7 @@ newtonRaphson <- function(alpha_0,real_alpha,sim.Matrix){
     diverged <- TRUE
   }
   
-  # Return: alpha_t.plus.one, converge or diverge? 
+  # Return: alpha_t.plus.one, divergers, iterations
   data.frame(alpha_hat=matrix(alpha_t.plus.one,1,5),diverged=diverged,iterations=count)
 }
 
