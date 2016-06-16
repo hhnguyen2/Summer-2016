@@ -80,7 +80,7 @@ gen_sim.data <- function(eta = eta,omega = omega,mu = mu){
   zi <- rbinom(n,1,expit(rowSums(t(t(xi) * eta[-1])) + eta[1]))  # zi ~ expit(eta'*x + eta_0)
   Pr.A.zx <- expit(rowSums(t(t(cbind(zi,xi)) * omega[-1])) + omega[1]) # Pr(A=1|Z,X)
   A <- rbinom(n,1,Pr.A.zx) # A ~ Bernoulli(Pr(A=1|Z,X)), column vector
-  Yi <- mu[1]*A + mu[2]*{A - Pr.A.zx} + mu[3] + rowSums(t(mu[4:length(mu)]*t(xi))) #mu[3] = mu_3*1 (+ mu_4*x1...)
+  Yi <- mu[1]*A + mu[2]*{A - Pr.A.zx} + mu[3] + rowSums(t(t(xi)*mu[4:length(mu)])) #mu[3] = mu_3*1 (+ mu_4*x1...)
   Yi <- Yi + rnorm(n,0,0.15) # E[Y|A,z,x] + eps
   
   ## Output simulation data as matrix
@@ -107,14 +107,13 @@ fr <- function(eta,sim.Matrix,use1m = FALSE){
   # ----------------
   # Extract xi and zi
   xi <- sim.Matrix[,c(1,grep("xi",colnames(sim.Matrix)))] # 1,x1, ..., xn
-  zi <- sim.Matrix$zi
   eta <- as.numeric(eta) # coerce data type to ensure operation works
   
   # Evaluate f(eta); eta[1] is eta_0; eta[-1] is eta_1,...,eta_4
   if(use1m){ # If use1m == TRUE, then use expit1m
-    zi.minus.pi <- zi - expit1m(rowSums(t(t(xi) * eta))) # zi - xi*eta
+    zi.minus.pi <- sim.Matrix$W - expit1m(rowSums(t(t(xi) * eta))) # zi - xi*eta
   } else{    # Otherwise just use e
-    zi.minus.pi <- zi - expit(rowSums(t(t(xi) * eta))) # zi - xi*eta
+    zi.minus.pi <- sim.Matrix$zi - expit(rowSums(t(t(xi) * eta))) # zi - xi*eta
   }
   
   # Output answer as column vector; [,1:5] is 1,x1,...,x4
@@ -177,7 +176,44 @@ newtonRaphson <- function(eta_0,sim.Matrix,use1m = FALSE){
   }
   
   # Return: eta_t.plus.one, converge or diverge? 
-  data.frame(eta_hat=matrix(eta_t.plus.one,1,length(eta_t.plus.one)),diverged=diverged)
+  #data.frame(eta_hat=matrix(eta_t.plus.one,1,length(eta_t.plus.one)),diverged=diverged,iterations=count)
+  as.numeric(eta_t.plus.one)
+}
+
+#Generate f(z|x) from zi's and x's
+gen_f.zx <- function(alpha,sim.Matrix){
+  # Extract xi and zi
+  xi <- sim.Matrix[,c(1,grep("xi",colnames(sim.Matrix)))] # 1,x1, ..., xn
+  zi <- sim.Matrix$zi
+  # Allocate empty answer matrix
+  f.zx <- rep(NA,1000)
+  
+  # Vectorized: f(z|x) = expit(alpha'x) if z==1, 1 - expit(alpha'x) otherwise
+  f.zx[which(zi==1)] <- expit(rowSums(t(t(xi[which(zi==1),])*alpha)))
+  f.zx[which(zi==0)] <- 1 - expit(rowSums(t(t(xi[which(zi==0),])*alpha)))
+  f.zx
+}
+
+# Generate W's from f(z|x)'s 
+gen_W <- function(sim.Matrix){
+  # Extract f(z|x), A, and zi
+  A <- sim.Matrix$A
+  f.zx <- sim.Matrix$f.zx
+  zi <- sim.Matrix$zi
+  
+  # allocate empty W
+  W <- rep(NA,1000)
+  
+  # Compute W
+  {A*(-1)^(1-zi)} / {2*f.zx}
+}
+
+gen_E.Wx <- function(theta,sim.Matrix){
+  # Extract xi
+  xi <- sim.Matrix[,c(1,grep("xi",colnames(sim.Matrix)))] # 1,x1, ..., xn
+  
+  # Generate E.Wx
+  expit1m(rowSums(t(t(xi)*theta)))
 }
 
 ## CONDUCT SIMULATION
@@ -188,47 +224,50 @@ mu <- c(0.14,-0.50,0.18,0.16,-0.87,0.90,0.20) # mu: logistic paramters for A + d
 
 # Set initial conditions
 iter <- 1000
-initial_eta <- c(0,0,0,0,0)
+initial_eta <- rep(0,5)
+initial_theta <- rep(0,6)
 results <- data.frame(eta_hat=matrix(0,iter,5),diverged=rep(NA,iter))
 #set.seed(-5664498)
 #set.seed(1199449)
 set.seed(9930010)
 
-# Solve
-for (i in 1:iter){
-  sim.data <- gen_sim.data(eta,omega,mu)
-  results[i,] <- newtonRaphson(initial_eta,sim.data,use1m = FALSE)
-  
-  cat(100*i/iter, "% done", "\n")
-}
+#################
+## BEGIN SIMULATION
 
-alpha_hat <- apply(results[,1:5],2,mean) # Use this to produce Pr[Z|X]
+## Fit logit Pr(z|X) = alpha'x
+sim.data <- gen_sim.data(eta,omega,mu)
+# Approximate alpha_hat
+alpha_hat <- newtonRaphson(initial_eta,sim.data,use1m = FALSE)
 
+# Generate f.zx & W into preallocated spot in sim.data
+sim.data$f.zx <- gen_f.zx(alpha_hat,sim.data)
+sim.data$W <- gen_W(sim.data)
 
-####################
-### FIX MEEEEEEEEEEEEE
-#Generate f(z|x) from zi's and x's
-function(eta,sim.Matrix){
-  # Extract xi and zi
-  xi <- sim.Matrix[,c(1,grep("xi",colnames(sim.Matrix)))] # 1,x1, ..., xn
-  zi <- sim.Matrix$zi
-  
-  f.zx <- rep(NA,n)
-  
-  f.zx[which(zi==1)] <- expit(rowSums(t(t(xi[which(zi==1),])*eta[-1]))
-                              + eta[1])
-  f.zx[which(zi==0)] <- 1 - expit(rowSums(t(t(xi[which(zi==0),])*eta[-1]))
-                                  + eta[1])
-  cbind(xi,zi,f.zx)
-}
+## Fit E[W|X] = {exp(theta'x) - 1} / {exp(theta'x) + 1} for each i
+# Approximate theta_hat
+theta_hat <- newtonRaphson(initial,eta,sim.data,use1m = TRUE)
+# Generate E[W|X],R, M for each person i
+sim.data$E.Wx <- gen_E.Wx(theta_hat,sim.data)
+sim.data$R <- sim.data$Yi / sim.data$E.Wx
+sim.data$M <- 1 / (sim.data$f.zx)
 
+# Define Z_bar, M_bar, R_bar
+Z_bar <- cbind(sim.data$ones,sim.data$zi)
+M_bar <- diag(sim.data$M)
+R_bar <- sim.data$R
+
+# Compute B_bar
+B_bar <- solve(t(Z_bar) %*% M_bar %*% Z_bar) %*% (t(Z_bar) %*% M_bar %*% R_bar)
+B_bar
+mu
+##
 #################
 
 
 
 
 
-## Results: avg. parameter, bias, variance, mean^2 error
+# ## Results: avg. parameter, bias, variance, mean^2 error
 # divergers <- which(results$diverged == TRUE)
 # eta_hat <- results[,1:5]
 # eta_hat.avg <- apply(eta_hat,2,mean)
@@ -236,7 +275,7 @@ function(eta,sim.Matrix){
 # eta_hat.pcbias <- (eta_hat.bias / eta) * 100
 # eta_hat.var <- apply(eta_hat,2,var)
 # eta_hat.mean2 <- eta_hat.bias^2 + eta_hat.var
-
+# 
 # ## Tabulated results
 # results.summary <- data.frame(eta=eta,
 #                               avg_value=eta_hat.avg,
