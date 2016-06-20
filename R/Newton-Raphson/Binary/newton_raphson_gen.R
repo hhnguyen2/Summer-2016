@@ -86,10 +86,10 @@ gen_sim.data <- function(eta = eta,omega = omega,mu = mu){
   ## Output simulation data as matrix
   data.frame(
     ones=rep(1,n),  # 1:   1
-    xi=xi,     # 2-5: x1, x2, x3, x4
-    zi=zi,     # 6:   z|x
-    A=A,       # 7:   A|z,x
-    Yi=Yi,     # 8:   E[Y|A,z,x]
+    xi=xi,          # 2-5: x1, x2, x3, x4
+    zi=zi,          # 6:   z|x
+    A=A,            # 7:   A|z,x
+    Yi=Yi,          # 8:   E[Y|A,z,x]
     f.zx=rep(NA,n), # 9:   f(z|x)
     W=rep(NA,n),    # 10:  W
     E.Wx=rep(NA,n), # 11:  E[W|X]
@@ -105,9 +105,19 @@ fr <- function(eta,sim.Matrix,use1m = FALSE){
   # INPUTS: eta, with form (eta_0, eta_1, ..., eta_n)
   # OUTPUTS: f(eta) as column vector
   # ----------------
-  # Extract xi and zi
-  xi <- sim.Matrix[,c(1,grep("xi",colnames(sim.Matrix)))] # 1,x1, ..., xn
+  # Extract xi
+  if(use1m){
+    # 1, zi, xi
+    xi <- as.matrix(sim.Matrix[,c(1,
+                                  grep("zi",colnames(sim.Matrix)),
+                                  grep("xi",colnames(sim.Matrix)))])
+  } else{
+    # 1, xi
+    xi <- as.matrix(sim.Matrix[,c(1,
+                                  grep("xi",colnames(sim.Matrix)))])
+  }  
   eta <- as.numeric(eta) # coerce data type to ensure operation works
+  try(if(length(eta)!=ncol(xi)) stop("Incompatible xi and eta"))
   
   # Evaluate f(eta); eta[1] is eta_0; eta[-1] is eta_1,...,eta_4
   if(use1m){ # If use1m == TRUE, then use expit1m
@@ -126,8 +136,19 @@ grr <- function(eta,sim.Matrix,use1m = FALSE){
   # OUTPUTS: Inverse Jacobian of f(eta) 
   # ----------------
   # Extract xi
-  xi <- as.matrix(sim.Matrix[,c(1,grep("xi",colnames(sim.Matrix)))]) # 1,x1, ..., xn
-  # Allocate empty answer matrix, should be 5x5
+  if(use1m){
+    # 1, zi, xi
+    xi <- as.matrix(sim.Matrix[,c(1,
+                                  grep("zi",colnames(sim.Matrix)),
+                                  grep("xi",colnames(sim.Matrix)))])
+  } else{
+    # 1, xi
+    xi <- as.matrix(sim.Matrix[,c(1,
+                                  grep("xi",colnames(sim.Matrix)))])
+  }
+  try(if(length(eta)!=ncol(xi)) stop("Incompatible xi and eta"))
+  
+  # Allocate empty answer matrix
   ans <- matrix(0,length(eta),length(eta))
   
   # Iteratively generate Jacobian matrix and add to allocated matrix
@@ -201,35 +222,34 @@ gen_W <- function(sim.Matrix){
   f.zx <- sim.Matrix$f.zx
   zi <- sim.Matrix$zi
   
-  # allocate empty W
-  W <- rep(NA,1000)
-  
   # Compute W
   {A*(-1)^(1-zi)} / {2*f.zx}
 }
 
-gen_E.Wx <- function(theta,sim.Matrix){
+gen_E.Wx <- function(omega,sim.Matrix){
   # Extract xi
-  xi <- sim.Matrix[,c(1,grep("xi",colnames(sim.Matrix)))] # 1,x1, ..., xn
+  xi <- sim.Matrix[,c(1,
+                      grep("zi",colnames(sim.Matrix)),
+                      grep("xi",colnames(sim.Matrix)))] # 1,x1, ..., xn
   
   # Generate E.Wx
-  expit1m(rowSums(t(t(xi)*theta)))
+  expit1m(rowSums(t(t(xi)*omega)))
 }
 
 ## CONDUCT SIMULATION
 # Set truth
 eta <- c(0.25,-0.25,0.10,-0.45,0.75)  # eta: logistic parameters for Z
 omega <- c(-0.3,0.6,0.75,0.80,-0.25,0.33) # omega : logistic parameters for A|Z,X
-mu <- c(0.14,-0.50,0.18,0.16,-0.87,0.90,0.20) # mu: logistic paramters for A + delta + x
+mu <- c(0.43,0.30,0.55,-0.95,-0.29,-0.02,-0.97) # mu: logistic paramters for A + delta + x
 
 # Set initial conditions
-iter <- 1000
-initial_eta <- rep(0,5)
-initial_theta <- rep(0,6)
+iter <- 15
+initial_eta <- rep(0,length(eta)) 
+initial_omega <- rep(0,length(omega))
 results <- data.frame(eta_hat=matrix(0,iter,5),diverged=rep(NA,iter))
 #set.seed(-5664498)
 #set.seed(1199449)
-set.seed(9930010)
+#set.seed(9930010)
 
 #################
 ## BEGIN SIMULATION
@@ -243,11 +263,11 @@ alpha_hat <- newtonRaphson(initial_eta,sim.data,use1m = FALSE)
 sim.data$f.zx <- gen_f.zx(alpha_hat,sim.data)
 sim.data$W <- gen_W(sim.data)
 
-## Fit E[W|X] = {exp(theta'x) - 1} / {exp(theta'x) + 1} for each i
-# Approximate theta_hat
-theta_hat <- newtonRaphson(initial,eta,sim.data,use1m = TRUE)
+## Fit E[W|X] = {exp(omega'x) - 1} / {exp(omega'x) + 1} for each i
+# Approximate omega_hat
+omega_hat <- newtonRaphson(initial_omega,sim.data,use1m = TRUE)
 # Generate E[W|X],R, M for each person i
-sim.data$E.Wx <- gen_E.Wx(theta_hat,sim.data)
+sim.data$E.Wx <- gen_E.Wx(omega_hat,sim.data)
 sim.data$R <- sim.data$Yi / sim.data$E.Wx
 sim.data$M <- 1 / (sim.data$f.zx)
 
@@ -258,52 +278,3 @@ R_bar <- sim.data$R
 
 # Compute B_bar
 B_bar <- solve(t(Z_bar) %*% M_bar %*% Z_bar) %*% (t(Z_bar) %*% M_bar %*% R_bar)
-B_bar
-mu
-##
-#################
-
-
-
-
-
-# ## Results: avg. parameter, bias, variance, mean^2 error
-# divergers <- which(results$diverged == TRUE)
-# eta_hat <- results[,1:5]
-# eta_hat.avg <- apply(eta_hat,2,mean)
-# eta_hat.bias <- (eta_hat.avg - eta)
-# eta_hat.pcbias <- (eta_hat.bias / eta) * 100
-# eta_hat.var <- apply(eta_hat,2,var)
-# eta_hat.mean2 <- eta_hat.bias^2 + eta_hat.var
-# 
-# ## Tabulated results
-# results.summary <- data.frame(eta=eta,
-#                               avg_value=eta_hat.avg,
-#                               bias=eta_hat.bias,
-#                               pc_bias=eta_hat.pcbias,
-#                               var=eta_hat.var,
-#                               mean2_err=eta_hat.mean2)
-# 
-# ## Make histogram, eh1p means eta_hat.1 plot, etc.
-# eh1p <- ggplot(eta_hat, aes(x=eta_hat.1)) +
-#   geom_histogram(bins = 30) +
-#   geom_vline(aes(xintercept=mean(eta_hat.1)),
-#              color="red", linetype="dashed", size=1, alpha=.5)
-# eh2p <- ggplot(eta_hat, aes(x=eta_hat.2)) +
-#   geom_histogram(bins = 30) +
-#   geom_vline(aes(xintercept=mean(eta_hat.2)),
-#              color="red", linetype="dashed", size=1, alpha=.5)
-# eh3p <- ggplot(eta_hat, aes(x=eta_hat.3)) +
-#   geom_histogram(bins = 30) +
-#   geom_vline(aes(xintercept=mean(eta_hat.3)),
-#              color="red", linetype="dashed", size=1, alpha=.5)
-# eh4p <- ggplot(eta_hat, aes(x=eta_hat.4)) +
-#   geom_histogram(bins = 30) +
-#   geom_vline(aes(xintercept=mean(eta_hat.4)),
-#              color="red", linetype="dashed", size=1, alpha=.5)
-# eh5p <- ggplot(eta_hat, aes(x=eta_hat.5)) +
-#   geom_histogram(bins = 30) +
-#   geom_vline(aes(xintercept=mean(eta_hat.5)),
-#              color="red", linetype="dashed", size=1, alpha=.5)
-# 
-# multiplot(eh1p,eh2p,eh3p,eh4p,eh5p, cols = 3) # plot all on one graph
