@@ -78,7 +78,16 @@ gen_sim.data <- function(eta = eta,omega = omega,mu = mu){
   # Generate xi, zi, A, yi
   xi <- matrix(rbinom(n*p,1,prob),n,p) # x1, x2,...,xn
   zi <- rbinom(n,1,expit(rowSums(t(t(xi) * eta[-1])) + eta[1]))  # zi ~ expit(eta'*x + eta_0)
-  Pr.A.zx <- expit(rowSums(t(t(cbind(zi,xi)) * omega[-1])) + omega[1]) # Pr(A=1|Z,X)
+  ######################
+  ## Kinda a hack lol
+  Pr.A.zx <- zi * expit1m(rowSums(t(t(xi) * omega[-1])) + omega[1]) # Pr(A=1|Z,X)
+  if(min(Pr.A.zx) < 0 && Pr.A.zx - min(Pr.A.zx) <= 1){
+    Pr.A.zx <- Pr.A.zx - min(Pr.A.zx)
+  } else{
+    stop("Umm....")
+  }
+  ##
+  ######################
   A <- rbinom(n,1,Pr.A.zx) # A ~ Bernoulli(Pr(A=1|Z,X)), column vector
   Yi <- mu[1]*A + mu[2]*{A - Pr.A.zx} + mu[3] + rowSums(t(t(xi)*mu[4:length(mu)])) #mu[3] = mu_3*1 (+ mu_4*x1...)
   Yi <- Yi + rnorm(n,0,0.15) # E[Y|A,z,x] + eps
@@ -106,19 +115,10 @@ fr <- function(eta,sim.Matrix,use1m = FALSE){
   # OUTPUTS: f(eta) as column vector
   # ----------------
   # Extract xi
-  if(use1m){
-    # 1, zi, xi
-    xi <- as.matrix(sim.Matrix[,c(1,
-                                  grep("zi",colnames(sim.Matrix)),
+  xi <- as.matrix(sim.Matrix[,c(1,
                                   grep("xi",colnames(sim.Matrix)))])
-  } else{
-    # 1, xi
-    xi <- as.matrix(sim.Matrix[,c(1,
-                                  grep("xi",colnames(sim.Matrix)))])
-  }  
   eta <- as.numeric(eta) # coerce data type to ensure operation works
-  try(if(length(eta)!=ncol(xi)) stop("Incompatible xi and eta"))
-  
+
   # Evaluate f(eta); eta[1] is eta_0; eta[-1] is eta_1,...,eta_4
   if(use1m){ # If use1m == TRUE, then use expit1m
     zi.minus.pi <- sim.Matrix$W - expit1m(rowSums(t(t(xi) * eta))) # zi - xi*eta
@@ -136,18 +136,8 @@ grr <- function(eta,sim.Matrix,use1m = FALSE){
   # OUTPUTS: Inverse Jacobian of f(eta) 
   # ----------------
   # Extract xi
-  if(use1m){
-    # 1, zi, xi
-    xi <- as.matrix(sim.Matrix[,c(1,
-                                  grep("zi",colnames(sim.Matrix)),
+  xi <- as.matrix(sim.Matrix[,c(1,
                                   grep("xi",colnames(sim.Matrix)))])
-  } else{
-    # 1, xi
-    xi <- as.matrix(sim.Matrix[,c(1,
-                                  grep("xi",colnames(sim.Matrix)))])
-  }
-  try(if(length(eta)!=ncol(xi)) stop("Incompatible xi and eta"))
-  
   # Allocate empty answer matrix
   ans <- matrix(0,length(eta),length(eta))
   
@@ -204,7 +194,8 @@ newtonRaphson <- function(eta_0,sim.Matrix,use1m = FALSE){
 #Generate f(z|x) from zi's and x's
 gen_f.zx <- function(alpha,sim.Matrix){
   # Extract xi and zi
-  xi <- sim.Matrix[,c(1,grep("xi",colnames(sim.Matrix)))] # 1,x1, ..., xn
+  xi <- sim.Matrix[,c(1,
+                      grep("xi",colnames(sim.Matrix)))] # 1,x1, ..., xn
   zi <- sim.Matrix$zi
   # Allocate empty answer matrix
   f.zx <- rep(NA,1000)
@@ -223,13 +214,12 @@ gen_W <- function(sim.Matrix){
   zi <- sim.Matrix$zi
   
   # Compute W
-  {A*(-1)^(1-zi)} / {2*f.zx}
+  {A*{(-1)^(1-zi)}} / {f.zx}
 }
 
 gen_E.Wx <- function(omega,sim.Matrix){
   # Extract xi
   xi <- sim.Matrix[,c(1,
-                      grep("zi",colnames(sim.Matrix)),
                       grep("xi",colnames(sim.Matrix)))] # 1,x1, ..., xn
   
   # Generate E.Wx
@@ -239,21 +229,23 @@ gen_E.Wx <- function(omega,sim.Matrix){
 ## CONDUCT SIMULATION
 # Set truth
 eta <- c(0.25,-0.25,0.10,-0.45,0.75)  # eta: logistic parameters for Z
-omega <- c(-0.3,0.6,0.75,0.80,-0.25,0.33) # omega : logistic parameters for A|Z,X
-mu <- c(0.43,0.30,0.55,-0.95,-0.29,-0.02,-0.97) # mu: logistic paramters for A + delta + x
+omega <- c(-0.3,0.6,0.75,0.80,-0.25) # omega : logistic parameters for A|Z,X
+mu <- c(0.43,0.30,0.55,-0.95,-0.29,-0.7,-0.97) # mu: logistic paramters for A + delta + x
 
 # Set initial conditions
-iter <- 15
+iter <- 150
 initial_eta <- rep(0,length(eta)) 
 initial_omega <- rep(0,length(omega))
 results <- data.frame(eta_hat=matrix(0,iter,5),diverged=rep(NA,iter))
 #set.seed(-5664498)
 #set.seed(1199449)
-#set.seed(9930010)
+#set.seed(99300101)
 
 #################
 ## BEGIN SIMULATION
 
+Bas <- rep(0,iter)
+for(i in 1:iter){
 ## Fit logit Pr(z|X) = alpha'x
 sim.data <- gen_sim.data(eta,omega,mu)
 # Approximate alpha_hat
@@ -278,3 +270,7 @@ R_bar <- sim.data$R
 
 # Compute B_bar
 B_bar <- solve(t(Z_bar) %*% M_bar %*% Z_bar) %*% (t(Z_bar) %*% M_bar %*% R_bar)
+Bas[i] <- B_bar[2,1]
+}
+Bas
+mu[1]
