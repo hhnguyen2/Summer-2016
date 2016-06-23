@@ -74,20 +74,21 @@ gen_sim.data <- function(eta = eta,omega = omega,mu = mu){
   n <- 1000
   p <- 4
   prob <- 0.5
-  
+
   # Generate xi, zi, A, yi
   xi <- matrix(rbinom(n*p,1,prob),n,p) # x1, x2,...,xn
   zi <- rbinom(n,1,expit(rowSums(t(t(xi) * eta[-1])) + eta[1]))  # zi ~ expit(eta'*x + eta_0)
-  ######################
-  ## Kinda a hack lol
   Pr.A.zx <- zi * expit1m(rowSums(t(t(xi) * omega[-1])) + omega[1]) # Pr(A=1|Z,X)
-  if(min(Pr.A.zx) < 0 && Pr.A.zx - min(Pr.A.zx) <= 1){
-    Pr.A.zx <- Pr.A.zx - min(Pr.A.zx)
-  } else{
-    stop("Umm....")
+  #my.gamma <- as.numeric(glm(0.1 * Pr.A.zx ~ xi)$coefficients)
+  my.gamma <- c(0.01,0.05,0.02,0.01,0.03)
+  Pr.A.zx <- Pr.A.zx + rowSums(t(t(xi) * my.gamma[-1])) + my.gamma[1]
+
+  # Stop simulation if we did not generate a probability. 
+  if(min(Pr.A.zx) < 0 | max(Pr.A.zx) > 1){
+    stop("ABANDON SHIP!!!!~ WE GOTTA GET OUTTA HEREE....")
   }
-  ##
-  ######################
+
+  
   A <- rbinom(n,1,Pr.A.zx) # A ~ Bernoulli(Pr(A=1|Z,X)), column vector
   Yi <- mu[1]*A + mu[2]*{A - Pr.A.zx} + mu[3] + rowSums(t(t(xi)*mu[4:length(mu)])) #mu[3] = mu_3*1 (+ mu_4*x1...)
   Yi <- Yi + rnorm(n,0,0.15) # E[Y|A,z,x] + eps
@@ -171,7 +172,7 @@ newtonRaphson <- function(eta_0,sim.Matrix,use1m = FALSE){
   
   # Loop until squared diff between eta_t and eta_t.plus.one is minimized
   #      or maximum alloted iterations is reached
-  while(count < max_iterations &&
+  while(count < max_iterations &
         norm(matrix(eta_t.plus.one - eta_t), "F") > tolerance){
     # Increment counter
     count <- count + 1
@@ -229,48 +230,83 @@ gen_E.Wx <- function(omega,sim.Matrix){
 ## CONDUCT SIMULATION
 # Set truth
 eta <- c(0.25,-0.25,0.10,-0.45,0.75)  # eta: logistic parameters for Z
-omega <- c(-0.3,0.6,0.75,0.80,-0.25) # omega : logistic parameters for A|Z,X
-mu <- c(0.43,0.30,0.55,-0.95,-0.29,-0.7,-0.97) # mu: logistic paramters for A + delta + x
+omega <- c(0.3,0.6,0.75,0.80,0.25) # omega : logistic parameters for A|Z,X
+mu <- c(1,0.30,0.55,-0.95,-0.29,-0.7,-0.97) # mu: logistic paramters for A + delta + x
 
 # Set initial conditions
-iter <- 150
+iter <- 1000
 initial_eta <- rep(0,length(eta)) 
 initial_omega <- rep(0,length(omega))
-results <- data.frame(eta_hat=matrix(0,iter,5),diverged=rep(NA,iter))
+B_hat <- matrix(NA,iter,2) # Bo, Ba 
 #set.seed(-5664498)
 #set.seed(1199449)
-#set.seed(99300101)
+set.seed(-23018349)
 
 #################
 ## BEGIN SIMULATION
 
-Bas <- rep(0,iter)
 for(i in 1:iter){
-## Fit logit Pr(z|X) = alpha'x
-sim.data <- gen_sim.data(eta,omega,mu)
-# Approximate alpha_hat
-alpha_hat <- newtonRaphson(initial_eta,sim.data,use1m = FALSE)
+  ## Fit logit Pr(z|X) = alpha'x
+  sim.data <- gen_sim.data(eta,omega,mu)
+  
+  # Approximate alpha_hat
+  alpha_hat <- newtonRaphson(initial_eta,sim.data,use1m = FALSE)
+  
+  # Generate f.zx & W into preallocated spot in sim.data
+  sim.data$f.zx <- gen_f.zx(alpha_hat,sim.data)
+  sim.data$W <- gen_W(sim.data)
+  
+  ## Fit E[W|X] = {exp(omega'x) - 1} / {exp(omega'x) + 1} for each i
+  # Approximate omega_hat
+  omega_hat <- newtonRaphson(initial_omega,sim.data,use1m = TRUE)
+  # Generate E[W|X],R, M for each person i
+  sim.data$E.Wx <- gen_E.Wx(omega_hat,sim.data)
+  sim.data$R <- sim.data$Yi / sim.data$E.Wx
+  sim.data$M <- 1 / (sim.data$f.zx)
+  
+  # Define Z_bar, M_bar, R_bar
+  Z_bar <- cbind(sim.data$ones,sim.data$zi)
+  M_bar <- diag(sim.data$M)
+  R_bar <- sim.data$R
+  
+  # Compute B_bar
+  B_hat[i,] <- solve(t(Z_bar) %*% M_bar %*% Z_bar) %*% (t(Z_bar) %*% M_bar %*% R_bar)
 
-# Generate f.zx & W into preallocated spot in sim.data
-sim.data$f.zx <- gen_f.zx(alpha_hat,sim.data)
-sim.data$W <- gen_W(sim.data)
-
-## Fit E[W|X] = {exp(omega'x) - 1} / {exp(omega'x) + 1} for each i
-# Approximate omega_hat
-omega_hat <- newtonRaphson(initial_omega,sim.data,use1m = TRUE)
-# Generate E[W|X],R, M for each person i
-sim.data$E.Wx <- gen_E.Wx(omega_hat,sim.data)
-sim.data$R <- sim.data$Yi / sim.data$E.Wx
-sim.data$M <- 1 / (sim.data$f.zx)
-
-# Define Z_bar, M_bar, R_bar
-Z_bar <- cbind(sim.data$ones,sim.data$zi)
-M_bar <- diag(sim.data$M)
-R_bar <- sim.data$R
-
-# Compute B_bar
-B_bar <- solve(t(Z_bar) %*% M_bar %*% Z_bar) %*% (t(Z_bar) %*% M_bar %*% R_bar)
-Bas[i] <- B_bar[2,1]
+  # Update progress
+  cat(100*i/iter, "% done", "\n")
 }
-Bas
-mu[1]
+
+## Results: avg. parameter, bias, variance, mean^2 error
+true_mu <- mu[1]
+Ba_hat <- B_hat[,2]
+Ba_hat.avg <- mean(Ba_hat)
+Ba_hat.bias <- Ba_hat.avg - true_mu
+Ba_hat.pcbias <- (Ba_hat.bias / true_mu) * 100
+Ba_hat.var <- var(Ba_hat)
+Ba_hat.mean2 <- Ba_hat.bias^2 + Ba_hat.var
+
+## Tabulated results
+results.summary <- data.frame(mu=true_mu,
+                              mean=Ba_hat.avg,
+                              bias=Ba_hat.bias,
+                              pc_bias=Ba_hat.pcbias,
+                              var=Ba_hat.var,
+                              mean2_err=Ba_hat.mean2)
+
+## Make histogram, ah1p means B_hat.1 plot, etc.
+Ba_hat_hist <- data.frame(Ba_hat=Ba_hat[Ba_hat > Ba_hat.avg - 3*sd(Ba_hat) & Ba_hat < Ba_hat.avg + 3*sd(Ba_hat)])
+Ba_hat_outliers <- Ba_hat[Ba_hat < Ba_hat.avg - 3*sd(Ba_hat) & Ba_hat > Ba_hat.avg + 3*sd(Ba_hat)]
+
+Ba_hat_hist_full <- data.frame(Ba_hat=Ba_hat)
+
+ggplot(Ba_hat_hist, aes(x=Ba_hat)) +
+  geom_histogram(bins = 20) +
+  geom_vline(aes(xintercept=mean(Ba_hat)),
+             color="red", linetype="dashed", size=1, alpha=.5) +
+  ggtitle("Histogram of Ba_hat (no outliers)")
+
+ggplot(Ba_hat_hist_full, aes(x=Ba_hat)) +
+  geom_histogram(bins = 20) +
+  geom_vline(aes(xintercept=mean(Ba_hat)),
+             color="red", linetype="dashed", size=1, alpha=.5) +
+  ggtitle("Histogram of Ba_hat (all values)")
