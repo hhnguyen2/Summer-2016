@@ -295,7 +295,7 @@ results.summary <- data.frame(mu=true_mu,
 
 ## Make histogram, ah1p means B_hat.1 plot, etc.
 Ba_hat_hist <- data.frame(Ba_hat=Ba_hat[Ba_hat > Ba_hat.avg - 3*sd(Ba_hat) & Ba_hat < Ba_hat.avg + 3*sd(Ba_hat)])
-Ba_hat_outliers <- Ba_hat[Ba_hat < Ba_hat.avg - 3*sd(Ba_hat) & Ba_hat > Ba_hat.avg + 3*sd(Ba_hat)]
+Ba_hat_outliers <- Ba_hat[Ba_hat < Ba_hat.avg - 3*sd(Ba_hat) | Ba_hat > Ba_hat.avg + 3*sd(Ba_hat)]
 
 Ba_hat_hist_full <- data.frame(Ba_hat=Ba_hat)
 
