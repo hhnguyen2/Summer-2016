@@ -224,11 +224,11 @@ my.data <- data.frame(ones=rep(1,nrow(data)),
                       zi=data$nearc4,
                       A=as.numeric(data$educ > 12),
                       Yi=as.numeric(data$wage > median(data$wage)),
-                      f.zx=rep(NA,nrow(data)), # 9:   f(z|x)
-                      W=rep(NA,nrow(data)),    # 10:  W
-                      E.Wx=rep(NA,nrow(data)), # 11:  E[W|X]
-                      R=rep(NA,nrow(data)),    # 12:  R
-                      M=rep(NA,nrow(data)))    # 13:  N)
+                      f.zx=rep(NA,nrow(data)), # f(z|x)
+                      W=rep(NA,nrow(data)),    # W
+                      E.Wx=rep(NA,nrow(data)), # E[W|X]
+                      R=rep(NA,nrow(data)),    # R
+                      M=rep(NA,nrow(data)))    # M
 
 ## Run estimator
 # Set initial conditions
