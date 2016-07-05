@@ -17,7 +17,7 @@ grr <- function(eta,sim.data,usem1 = FALSE){
   
   # Evaluate inverse Jacobian. Return NA matrix if singular. 
   if(usem1){ # If using expitm1, dexpit should be scaled by 2
-    solve(ans*2) 
+    solve(ans*4) 
   } else{    # Otherwise, just solve as is 
     solve(ans)
   }

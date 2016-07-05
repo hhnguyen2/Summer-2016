@@ -9,7 +9,7 @@ fr <- function(eta,sim.data,usem1 = FALSE){
   
   # Evaluate f(eta); output as column vector
   if(usem1){ # If usem1 == TRUE, then use expitm1, since this is A|Z,x
-    col.minus.expit <- as.numeric(sim.data$W - expitm1(xi %*% eta)) #  W - expitm1(eta'x)
+    col.minus.expit <- as.numeric(sim.data$W - tanh(xi %*% eta)) #  W - expitm1(eta'x)
   } else{  # Otherwise just use expit, since this is Z|x
     col.minus.expit <- as.numeric(sim.data$zi - expit(xi %*% eta))  # zi - expit(eta'x)
   }
