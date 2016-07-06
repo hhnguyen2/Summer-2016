@@ -6,8 +6,8 @@ init_B <- rep(0,2)
 # Set truth
 my.gamma <- c(0.25,-0.25,0.10,-0.45,0.75)  # my.gamma: logistic parameters for Z
 alph <- c(0.67,-0.34,-0.26,-0.73,0.28)     # alph: logistic parameters for A|Z,X
-#mu <- c(1.62,0,0.58,-1.54,-0.65,0.55,1.26) # mu: logistic paramters for A, delta, x
-mu <- round(runif(7,-2,2),2)
+mu <- c(1.62,0,0.58,-1.54,-0.65,0.55,1.26) # mu: logistic paramters for A, delta, x
+#mu <- round(runif(7,-2,2),2)
 psi <- c(0.25,0.17,0.13,0.38,-0.16)        # psi: used to coerce Pr.A.zx between (0,1)
 
 ####################
@@ -21,7 +21,7 @@ sim.data <- gen_sim.data(my.gamma,alph,mu,psi)
 xi <- extract_xi(sim.data)
 
 ## Approximate alpha_hat by fitting logit Pr(z|X) = alpha'x
-gamma_opt <- optim(init_gamma,opt_fr)$par
+gamma_opt <- optim(init_gamma,opt_fr,data=sim.data)$par
 gamma_nr <- newtonRaphson(init_gamma,sim.data,usem1 = FALSE)
 gamma_glm <- as.numeric(glm(zi~x.1+x.2+x.3+x.4,data=sim.data,family=binomial)$coefficients)
 
@@ -32,18 +32,11 @@ sim.data$W <- gen_W(sim.data)
 
 ## Fit E[W|X] = {exp(alpha'x) - 1} / {exp(alpha'x) + 1} for each i
 # Approximate alpha_hat
-alpha_opt <- optim(init_alpha,opt_grr)$par
+alpha_opt <- optim(init_alpha,opt_grr,data=sim.data)$par
 alpha_nr <- newtonRaphson(init_alpha,sim.data,usem1 = TRUE)
 
 alpha_hat <- alpha_opt
-## Diag
-my.gamma
-gamma_nr
-gamma_glm
-gamma_opt
-alph
-alpha_nr
-alpha_opt
+
 ## Generate E[W|X],R, M for each person i
 sim.data$E.Wx <- gen_E.Wx(alpha_hat,sim.data)
 sim.data$R <- sim.data$Yi / sim.data$E.Wx
@@ -57,13 +50,22 @@ R_bar <- sim.data$R
 ## Compute B_bar
 B_closed <- solve(t(Z_bar) %*% M_bar %*% Z_bar) %*% (t(Z_bar) %*% M_bar %*% R_bar)
 B_lm <- lm(R~1+zi, weight = 1/f.hat.zx, data = sim.data)$coefficients
-B_opt <- optim(init_B,opt_hrrr)$par
+B_opt <- optim(init_B,opt_hrrr,data=sim.data)$par
 
+## Output
+## Diag
+my.gamma
+gamma_nr
+gamma_glm
+gamma_opt
+alph
+alpha_nr
+alpha_opt
 B_closed
 B_lm
 B_opt
 
-mu[1]
+mu
 
 ## END SIMULATION
 ###################

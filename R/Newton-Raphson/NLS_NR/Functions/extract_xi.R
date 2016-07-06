@@ -1,7 +1,7 @@
 # EXTRACT Xi
-# Input: simulation data
-# Output: n-by-p matrix: 1,x1,x2,...,xn
-extract_xi <- function(sim.data){
-  as.matrix(sim.data[,c(1,
-                        grep("x.",colnames(sim.data)))])
+# Input: simulation or card data with form (1,x.1,x.2,...)
+# Output: n-by-p matrix: 1,x.1,x.2,...,x.n
+extract_xi <- function(data){
+  as.matrix(data[,c(1,
+                        grep("x.",colnames(data)))])
 }

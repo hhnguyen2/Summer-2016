@@ -1,10 +1,10 @@
 #Generate f(z|x) from zi's and x's
-gen_f.hat.zx <- function(gamma_hat,sim.data){
+gen_f.hat.zx <- function(gamma_hat,data){
   # Extract xi and zi
-  xi <- extract_xi(sim.data)
-  zi <- sim.data$zi
+  xi <- extract_xi(data)
+  zi <- data$zi
   # Allocate empty output matrix
-  f.hat.zx <- rep(NA,1000)
+  f.hat.zx <- rep(NA,nrow(data))
   
   # Vectorized: f(z|x) = expit(gamma_hat'x)     if z==1, 
   #                    = 1 - expit(gamma_hat'x) otherwise

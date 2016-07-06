@@ -21,10 +21,16 @@ source("Functions/opt_hrrr.R")   # Evaluates squared of (1,Zi)*(Ri-B0-BaZi)(1/(f
 
 ## Data Generation Functions
 source("Functions/gen_sim.data.R")  # Generates simulation data: 1,xi,zi,A,Y
-source("Functions/extract_xi.R")    # Extracts x_i matrix from data
 source("Functions/gen_f.hat.zx.R")  # Generates f(z|x) from alpha_hat estimate
 source("Functions/gen_W.R")         # Generates W = {A}^{1-z} / {f(z=1|x)}
 source("Functions/gen_E.Wx.R")      # Generates E[W|X] = expitm1(xi %*% alpha_hat)
+source("Functions/extract_xi.R")    # Extracts x_i matrix from data
+
+## Read in Card Data
+source("Functions/read_card_data.R")
 
 ## Run simulation
-source("Reference/main_simulation.R",echo=TRUE)
+card.data <- read_card_data()
+source("Scripts/main_card_analysis.R",echo=TRUE)
+#source("Scripts/main_simulation.R",echo=TRUE)
+#source("Reference/main_card_analysis.R",echo=TRUE)
