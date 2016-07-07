@@ -14,7 +14,8 @@ psi <- c(0.25,0.17,0.13,0.38,-0.16)        # psi: used to coerce Pr.A.zx between
 ## BEGIN SIMULATION
 
 ### Set initial seed
-#set.seed(-23018349)
+i <- 445
+set.seed(-23018349 - i)
 
 ## Generate simulation data
 sim.data <- gen_sim.data(my.gamma,alph,mu,psi)
@@ -25,7 +26,7 @@ gamma_opt <- optim(init_gamma,opt_fr,data=sim.data)$par
 gamma_nr <- newtonRaphson(init_gamma,sim.data,usem1 = FALSE)
 gamma_glm <- as.numeric(glm(zi~x.1+x.2+x.3+x.4,data=sim.data,family=binomial)$coefficients)
 
-gamma_hat <- gamma_opt
+gamma_hat <- gamma_nr
 ## Generate f.zx & W into preallocated spot in sim.data
 sim.data$f.hat.zx <- gen_f.hat.zx(gamma_hat,sim.data)
 sim.data$W <- gen_W(sim.data)
@@ -35,7 +36,7 @@ sim.data$W <- gen_W(sim.data)
 alpha_opt <- optim(init_alpha,opt_grr,data=sim.data)$par
 alpha_nr <- newtonRaphson(init_alpha,sim.data,usem1 = TRUE)
 
-alpha_hat <- alpha_opt
+alpha_hat <- alpha_nr
 
 ## Generate E[W|X],R, M for each person i
 sim.data$E.Wx <- gen_E.Wx(alpha_hat,sim.data)
@@ -66,6 +67,7 @@ B_lm
 B_opt
 
 mu
+
 
 ## END SIMULATION
 ###################

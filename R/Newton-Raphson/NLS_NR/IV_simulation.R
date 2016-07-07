@@ -6,8 +6,7 @@ library(ggplot2)
 
 ## Evaluation functions
 source("Functions/expit.R")      # Evals exp(x)/(1+exp(x))
-source("Functions/expitm1.R")    # Evals {exp(x)-1} / {exp(x)+1}
-source("Functions/dexpit.R")     # Evals (expit(x))/(1-expit(x))
+source("Functions/dexpit.R")     # Evals (expit(x))*(1-expit(x))
 
 ## Newton-Raphson functions
 source("Functions/fr.R")            # Evaluates (X)*(zi - expit(xi %*% gamma))
@@ -31,6 +30,6 @@ source("Functions/read_card_data.R")
 
 ## Run simulation
 card.data <- read_card_data()
-source("Scripts/main_card_analysis.R",echo=TRUE)
-#source("Scripts/main_simulation.R",echo=TRUE)
+#source("Scripts/main_card_analysis.R",echo=TRUE)
+source("Scripts/main_simulation.R",echo=TRUE)
 #source("Reference/main_card_analysis.R",echo=TRUE)

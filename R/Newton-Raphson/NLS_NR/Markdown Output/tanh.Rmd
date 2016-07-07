@@ -1,0 +1,21 @@
+---
+title: "Untitled"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+load("lol.RData")
+```
+
+## R Markdown
+
+```{r seed -23018794}
+B_closed
+summary(sim.data$E.Wx)
+tanh_title <- expression("Histogram of "*1/tanh(hat(alpha)^T*x)*" at seed -23018794")
+hist(sim.data$E.Wx,main=tanh_title, xlab=expression(1/tanh(alpha*"'"*x)),breaks = 20)
+hist(sim.data$R,main="Histogram of R = Y/tanh, seed -23018794")
+hist(sim.data$R[sim.data$R > 1000],main="Histogram of R > 1000, seed -23018794")
+```
+
