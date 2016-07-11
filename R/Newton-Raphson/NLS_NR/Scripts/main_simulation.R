@@ -14,7 +14,7 @@ psi <- c(0.25,0.17,0.13,0.38,-0.16)        # psi: used to coerce Pr.A.zx between
 ## BEGIN SIMULATION
 
 ### Set initial seed
-i <- 445
+i <- 550
 set.seed(-23018349 - i)
 
 ## Generate simulation data

@@ -12,7 +12,7 @@ N <- nrow(card.data)
 
 for(i in 1:iter){
   ## Set seed
-  set.seed(130000 + i) # Seed ranges from 130001-131000
+  set.seed(140000 + i) # Seed ranges from 130001-131000
   
   ## Bootstrap
   index = sample(1:N,replace=TRUE)
@@ -30,8 +30,8 @@ for(i in 1:iter){
   
   ## Fit E[W|X] = {exp(alpha'x) - 1} / {exp(alpha'x) + 1} for each i
   # Approximate alpha_hat
-  alpha_hat <- newtonRaphson(init_alpha,data.btstrap,usem1 = TRUE)
-  #alpha_hat <- optim(init_alpha,opt_grr,data=data.btstrap)$par
+  #alpha_hat <- newtonRaphson(init_alpha,data.btstrap,usem1 = TRUE)
+  alpha_hat <- optim(init_alpha,opt_grr,data=data.btstrap)$par
   
   # Generate E[W|X],R, M for each person i
   data.btstrap$E.Wx <- gen_E.Wx(alpha_hat,data.btstrap)

@@ -31,5 +31,5 @@ source("Functions/read_card_data.R")
 ## Run simulation
 card.data <- read_card_data()
 #source("Scripts/main_card_analysis.R",echo=TRUE)
-source("Scripts/main_simulation.R",echo=TRUE)
+source("Scripts/main_simulation_looped.R",echo=TRUE)
 #source("Reference/main_card_analysis.R",echo=TRUE)
