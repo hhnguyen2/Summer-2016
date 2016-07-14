@@ -31,7 +31,9 @@ for(i in 1:iter){
   ## Fit E[W|X] = {exp(alpha'x) - 1} / {exp(alpha'x) + 1} for each i
   # Approximate alpha_hat
   #alpha_hat <- newtonRaphson(init_alpha,data.btstrap,usem1 = TRUE)
-  alpha_hat <- optim(init_alpha,opt_grr,data=data.btstrap)$par
+  #alpha_hat <- optim(init_alpha,opt_grr,data=data.btstrap)$par
+  alpha_hat <- rep(0,16)
+  alpha_hat[1] <- alpha_hat[1] + 1
   
   # Generate E[W|X],R, M for each person i
   data.btstrap$E.Wx <- gen_E.Wx(alpha_hat,data.btstrap)
@@ -53,3 +55,9 @@ for(i in 1:iter){
 }
 
 hist(Ba_hat_est, main="Histogram of Beta_a using glm,NR,lm", xlab="Beta_a")
+Ba_hat_hist_full <- data.frame(Ba_hat=Ba_hat_est)
+ggplot(Ba_hat_hist_full, aes(x=Ba_hat)) +
+  geom_histogram(bins = 20) +
+  geom_vline(aes(xintercept=mean(Ba_hat)),
+             color="red", linetype="dashed", size=1, alpha=.5) +
+  ggtitle(expression("Histogram of "*hat(beta[a])))

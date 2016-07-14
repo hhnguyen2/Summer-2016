@@ -11,10 +11,6 @@ gen_sim.data <- function(my.gamma,alpha,mu,psi){
   p <- 4       # Number of x_i variables
   prob <- 0.5  # Probability of binary x_i values
 
-  # Reserved values for expitm1 model 2
-  #alph <<- c(-0.15,0.85,-0.30,0.75,0.60) 
-  #psi <- c(0.59,-0.16,0.06,-0.13,-0.23)
-  
   # Generate xi, zi, A, yi
   xi <- cbind(1,
               matrix(rbinom(n*p,1,prob),n,p))  # xi = (x1,x2,...,x_n) ~ Bernoulli(prob)
@@ -22,7 +18,8 @@ gen_sim.data <- function(my.gamma,alpha,mu,psi){
   
   #Pr.A.zx <- zi * expitm1(xi %*% alph)   # Pr(A=1|Z,X) ~ expit1m(alph'x + omega_0)
   Pr.A.zx <- zi * tanh(xi %*% alph)
-  Pr.A.zx <- Pr.A.zx + xi %*% psi        # Pr(A=1|Z,x) + my.gamma'x
+  Pr.A.zx <- Pr.A.zx + psi
+  #Pr.A.zx <- Pr.A.zx + xi %*% psi        # Pr(A=1|Z,x) + my.gamma'x
   
   # Stop simulation if we did not generate a probability. 
   if(min(Pr.A.zx) < 0 | max(Pr.A.zx) > 1){
@@ -35,14 +32,7 @@ gen_sim.data <- function(my.gamma,alpha,mu,psi){
   A <- rbinom(n,1,Pr.A.zx)   # A ~ Bernoulli(Pr(A=1|Z,X)), column vector
   Yi <- mu[1]*A + mu[2]*{A - Pr.A.zx} + xi %*% mu[3:length(mu)] #mu_{1}*A + mu_{2}*(A - Pr(A|Z,x)) + mu_{3}'(x')
   Yi <- Yi + rnorm(n,0,1)    # E[Y|A,z,x] + eps
-  
-  ###################
-  ## CODE FOR Y CONTINUOUS: Y = mu_1 * a + mu_3 * x + mu_4 * z + eps
-  ###################
-  
-  ###################
-  ## CODE FOR Y BINARY: NOT SURE 
-  ###################
+
   
   ## Output simulation data as data.frame
   ## Note: We preallocate f(z|x), W, E[W|x], R, N as NA values.

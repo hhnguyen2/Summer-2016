@@ -5,10 +5,10 @@ init_alpha <- rep(0,5)
 init_B <- rep(0,2)
 # Set truth
 my.gamma <- c(0.25,-0.25,0.10,-0.45,0.75)  # my.gamma: logistic parameters for Z
-alph <- c(0.67,-0.34,-0.26,-0.73,0.28)     # alph: logistic parameters for A|Z,X
+alph <- 0.35*c(.1,.1,.1,.1,-0.5)                       # alph: logistic parameters for A|Z,X
 mu <- c(1.62,0,0.58,-1.54,-0.65,0.55,1.26) # mu: logistic paramters for A, delta, x
-#mu <- round(runif(7,-2,2),2)
-psi <- c(0.25,0.17,0.13,0.38,-0.16)        # psi: used to coerce Pr.A.zx between (0,1)
+psi <- 0.6
+#psi <- c(0.25,0.17,0.13,0.38,-0.16)        # psi: used to coerce Pr.A.zx between (0,1)
 
 ####################
 ## BEGIN SIMULATION
