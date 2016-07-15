@@ -6,7 +6,7 @@ init_B <- rep(0,2)
 
 
 # Set loop conditions
-iter <- 1000
+iter <- 10
 Ba_hat_est <- rep(NA,iter)
 N <- nrow(card.data)
 

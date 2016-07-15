@@ -18,21 +18,18 @@ gen_sim.data <- function(my.gamma,alpha,mu,psi){
   
   #Pr.A.zx <- zi * expitm1(xi %*% alph)   # Pr(A=1|Z,X) ~ expit1m(alph'x + omega_0)
   Pr.A.zx <- zi * tanh(xi %*% alph)
-  Pr.A.zx <- Pr.A.zx + psi
-  #Pr.A.zx <- Pr.A.zx + xi %*% psi        # Pr(A=1|Z,x) + my.gamma'x
-  
+  #Pr.A.zx <- Pr.A.zx + psi
+  Pr.A.zx <- Pr.A.zx + xi %*% psi        # Pr(A=1|Z,x) + my.gamma'x
+  summary(Pr.A.zx)
   # Stop simulation if we did not generate a probability. 
   if(min(Pr.A.zx) < 0 | max(Pr.A.zx) > 1){
     stop("Oops! Pr(A|Z,x) contains a value outside of [0,1]")
   }
-  
-  summary(Pr.A.zx)
-  
+
   # Generate A|Z,x and Y|A,Z,x
   A <- rbinom(n,1,Pr.A.zx)   # A ~ Bernoulli(Pr(A=1|Z,X)), column vector
   Yi <- mu[1]*A + mu[2]*{A - Pr.A.zx} + xi %*% mu[3:length(mu)] #mu_{1}*A + mu_{2}*(A - Pr(A|Z,x)) + mu_{3}'(x')
   Yi <- Yi + rnorm(n,0,1)    # E[Y|A,z,x] + eps
-
   
   ## Output simulation data as data.frame
   ## Note: We preallocate f(z|x), W, E[W|x], R, N as NA values.
