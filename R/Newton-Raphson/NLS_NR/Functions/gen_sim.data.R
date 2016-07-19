@@ -16,11 +16,11 @@ gen_sim.data <- function(my.gamma,alpha,mu,psi){
               matrix(rbinom(n*p,1,prob),n,p))  # xi = (x1,x2,...,x_n) ~ Bernoulli(prob)
   zi <- rbinom(n,1,expit(xi %*% my.gamma))     # zi ~ expit(my.gamma'*x + gamma_0)
   
-  #Pr.A.zx <- zi * expitm1(xi %*% alph)   # Pr(A=1|Z,X) ~ expit1m(alph'x + omega_0)
   Pr.A.zx <- zi * tanh(xi %*% alph)
   #Pr.A.zx <- Pr.A.zx + psi
   Pr.A.zx <- Pr.A.zx + xi %*% psi        # Pr(A=1|Z,x) + my.gamma'x
-  summary(Pr.A.zx)
+  #summary(Pr.A.zx)
+  #hist(Pr.A.zx,xlab="Pr(A|z,x)",main="Histogram of Pr(A|z,x) before adding psi'x")
   # Stop simulation if we did not generate a probability. 
   if(min(Pr.A.zx) < 0 | max(Pr.A.zx) > 1){
     stop("Oops! Pr(A|Z,x) contains a value outside of [0,1]")
