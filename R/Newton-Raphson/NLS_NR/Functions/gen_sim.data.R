@@ -5,7 +5,7 @@
 ##             * mu[1] -- our target parameter
 ##             * mu[2] -- confounding on A
 ## Output: data.frame of simulation variables (see output for more details)
-gen_sim.data <- function(my.gamma,alpha,mu,psi){
+gen_sim.data <- function(my.gamma,alph,mu,psi){
   # Set initial conditions
   n <- 1000    # Number of rows
   p <- 4       # Number of x_i variables
@@ -16,9 +16,10 @@ gen_sim.data <- function(my.gamma,alpha,mu,psi){
               matrix(rbinom(n*p,1,prob),n,p))  # xi = (x1,x2,...,x_n) ~ Bernoulli(prob)
   zi <- rbinom(n,1,expit(xi %*% my.gamma))     # zi ~ expit(my.gamma'*x + gamma_0)
   
-  Pr.A.zx <- zi * tanh(xi %*% alph)
+  #Pr.A.zx <- zi * tanh(xi %*% alph)
+  Pr.A.zx <- zi * tanh(alph)
   #Pr.A.zx <- Pr.A.zx + psi
-  Pr.A.zx <- Pr.A.zx + xi %*% psi        # Pr(A=1|Z,x) + my.gamma'x
+  #Pr.A.zx <- Pr.A.zx + xi %*% psi        # Pr(A=1|Z,x) + my.gamma'x
   #summary(Pr.A.zx)
   #hist(Pr.A.zx,xlab="Pr(A|z,x)",main="Histogram of Pr(A|z,x) before adding psi'x")
   # Stop simulation if we did not generate a probability. 

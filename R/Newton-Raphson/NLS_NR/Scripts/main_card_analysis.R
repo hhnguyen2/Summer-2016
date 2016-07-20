@@ -1,18 +1,19 @@
 #### RUN METHOD
 # Initialize variables
 init_gamma <- rep(0,16)
-init_alpha <- rep(0,16)
+init_alpha <- 0
 init_B <- rep(0,2)
 
 
 # Set loop conditions
-iter <- 10
+iter <- 1000
 Ba_hat_est <- rep(NA,iter)
+alpha_hat_est <- rep(NA,iter)
 N <- nrow(card.data)
 
 for(i in 1:iter){
   ## Set seed
-  set.seed(140000 + i) # Seed ranges from 130001-131000
+  set.seed(500000 + i) # Seed ranges from 500001 - 501000
   
   ## Bootstrap
   index = sample(1:N,replace=TRUE)
@@ -32,8 +33,8 @@ for(i in 1:iter){
   # Approximate alpha_hat
   #alpha_hat <- newtonRaphson(init_alpha,data.btstrap,usem1 = TRUE)
   #alpha_hat <- optim(init_alpha,opt_grr,data=data.btstrap)$par
-  alpha_hat <- rep(0,16)
-  alpha_hat[1] <- alpha_hat[1] + 1
+  alpha_hat <- optim(init_alpha,opt_grr_int,data=data.btstrap,method="Brent",lower=0,upper=1)$par
+  alpha_hat_est[i] <- alpha_hat
   
   # Generate E[W|X],R, M for each person i
   data.btstrap$E.Wx <- gen_E.Wx(alpha_hat,data.btstrap)
@@ -61,3 +62,10 @@ ggplot(Ba_hat_hist_full, aes(x=Ba_hat)) +
   geom_vline(aes(xintercept=mean(Ba_hat)),
              color="red", linetype="dashed", size=1, alpha=.5) +
   ggtitle(expression("Histogram of "*hat(beta[a])))
+
+alpha_hat_hist_full <- data.frame(alpha_hat=alpha_hat_est)
+ggplot(alpha_hat_hist_full, aes(x=alpha_hat)) +
+  geom_histogram(bins = 20) +
+  geom_vline(aes(xintercept=mean(alpha_hat)),
+             color="red", linetype="dashed", size=1, alpha=.5) +
+  ggtitle(expression("Histogram of "*hat(alpha[0])))

@@ -17,6 +17,7 @@ source("Functions/newtonRaphson.R") # Newton-Raphson root solver
 source("Functions/opt_fr.R")     # Evaluates squared of (X)*(zi - expit(xi %*% gamma))
 source("Functions/opt_grr.R")    # Evaluates squared of (X)*(zi - expit(xi %*% ))
 source("Functions/opt_hrrr.R")   # Evaluates squared of (1,Zi)*(Ri-B0-BaZi)(1/(f.hat.zx))
+source("Functions/opt_grr_int.R")# Evaluates squared of (X)*(W - tanh(alpha_0))
 
 ## Data Generation Functions
 source("Functions/gen_sim.data.R")  # Generates simulation data: 1,xi,zi,A,Y
@@ -24,7 +25,7 @@ source("Functions/gen_f.hat.zx.R")  # Generates f(z|x) from alpha_hat estimate
 source("Functions/gen_W.R")         # Generates W = {A}^{1-z} / {f(z=1|x)}
 source("Functions/gen_E.Wx.R")      # Generates E[W|X] = expitm1(xi %*% alpha_hat)
 source("Functions/extract_xi.R")    # Extracts x_i matrix from data
-source("Functions/extract_x_int.R") # Extracts only x1 (i.e. intercept model)
+source("Functions/gen_results.R")   # Generates mean, bias, %bias, var, and MSE of Ba estimates
 
 ## Read in Card Data
 source("Functions/read_card_data.R")

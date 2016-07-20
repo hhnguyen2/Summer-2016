@@ -8,8 +8,9 @@ fr <- function(my.gamma,data,usem1 = FALSE){
   my.gamma <- as.numeric(my.gamma) # coerce data type to ensure operation works
   
   # Evaluate f(my.gamma); output as column vector
-  if(usem1){ # If usem1 == TRUE, then use expitm1, since this is A|Z,x
-    col.minus.expit <- as.numeric(data$W - tanh(xi %*% my.gamma)) #  W - expitm1(my.gamma'x)
+  if(usem1){ # If usem1 == TRUE, then use expitm1, since this is A|Z,x; my.gamma is actually alpha
+    #col.minus.expit <- as.numeric(data$W - tanh(xi %*% my.gamma))   # W - tanh(my.gamma'x)
+    col.minus.expit <- as.numeric(data$W - tanh(my.gamma[1]))        # intercept-model
   } else{  # Otherwise just use expit, since this is Z|x
     col.minus.expit <- as.numeric(data$zi - expit(xi %*% my.gamma))  # zi - expit(my.gamma'x)
   }
