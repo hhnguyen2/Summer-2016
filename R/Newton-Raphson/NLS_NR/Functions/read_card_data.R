@@ -36,7 +36,7 @@ read_card_data <- function(){
              x.15=x.15,
              zi=data$nearc4,
              A=as.numeric(data$educ > 12),
-             Yi=as.numeric(data$wage > median(data$wage)),
+             Yi=as.numeric(data$wage),
              f.hat.zx=rep(NA,nrow(data)), # f(z|x)
              W=rep(NA,nrow(data)),    # W
              E.Wx=rep(NA,nrow(data)), # E[W|X]

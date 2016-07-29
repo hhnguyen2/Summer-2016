@@ -19,7 +19,7 @@ card.data$W <- gen_W(card.data)
 
 ## Fit E[W|X] = {exp(alpha'x) - 1} / {exp(alpha'x) + 1} for each i
 # Approximate alpha_hat
-alpha_opt <- optim(init_alpha,opt_grr_int,data=card.data,method="Brent",lower=-10,upper=10)$par
+alpha_opt <- optim(init_alpha,opt_grr_int,data=card.data,method="Brent",lower=-3,upper=0.5)$par
 #alpha_nr <- newtonRaphson(init_alpha,card.data,usem1 = TRUE)
 alpha_hat <- alpha_opt
 

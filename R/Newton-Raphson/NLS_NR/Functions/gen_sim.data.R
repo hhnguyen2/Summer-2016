@@ -5,9 +5,8 @@
 ##             * mu[1] -- our target parameter
 ##             * mu[2] -- confounding on A
 ## Output: data.frame of simulation variables (see output for more details)
-gen_sim.data <- function(my.gamma,alph,mu,psi){
+gen_sim.data <- function(n,my.gamma,alph,mu,psi){
   # Set initial conditions
-  n <- 1000    # Number of rows
   p <- 4       # Number of x_i variables
   prob <- 0.5  # Probability of binary x_i values
 

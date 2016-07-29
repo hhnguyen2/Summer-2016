@@ -14,20 +14,21 @@ mu <- c(1.62,0.73,0.58,-1.54,-0.65,0.55,1.26) # mu: logistic paramters for A, de
 #alph <- c(0.67,-0.34,-0.26,-0.73,0.28)     # alph: logistic parameters for A|Z,X
 
 # Initialize loop conditions
-iter <- c(500,1000,5000)
-Ba_hat <- mapply(rep,0,iter)
+n <- c(500,1000,5000)
+Ba_hat <- mapply(rep,0,rep(1000,3))
+iter <- 1000
 ####################
 ## BEGIN SIMULATION
 
 for(j in 1:3){
-  for(i in 1:iter[j]){
+  for(i in 1:iter){
     ### Set initial seed
     set.seed(-500000 - (i+j*1000)) # Seed list: (500 iterations)  -- -401001 to -401500
                                    #            (1000 iterations) -- -402001 to -403000
                                    #            (5000 iterations) -- -403001 to -408000
     
     ## Generate simulation data
-    sim.data <- gen_sim.data(my.gamma,alph,mu,psi)
+    sim.data <- gen_sim.data(n[j],my.gamma,alph,mu,psi)
     xi <- extract_xi(sim.data)
     
     ## Approximate alpha_hat by fitting logit Pr(z|X) = alpha'x
@@ -47,24 +48,26 @@ for(j in 1:3){
     sim.data$R <- sim.data$Yi / sim.data$E.Wx
     
     ## Compute B_bar
-    Ba_hat[[j]][i] <- lm(R~1+zi, weight = 1/f.hat.zx, data = sim.data)$coefficients[2]
+    Ba_hat[i,j] <- lm(R~1+zi, weight = 1/f.hat.zx, data = sim.data)$coefficients[2]
     
     ## Check done
-    cat(i/iter[[j]]*100,"% done\n")
+    cat(i/iter*100,"% done\n")
   }
 }
 ## END SIMULATION
 ###################
 
-results.summary.500 <- gen_results(Ba_hat[[1]],mu)
-results.summary.1000 <- gen_results(Ba_hat[[2]],mu)
-results.summary.5000 <- gen_results(Ba_hat[[3]],mu)
+results.summary.500 <- gen_results(Ba_hat[,1],mu)
+results.summary.1000 <- gen_results(Ba_hat[,2],mu)
+results.summary.5000 <- gen_results(Ba_hat[,3],mu)
 
 results.summary.500
 results.summary.1000
 results.summary.5000
 
-names(Ba_hat) <- c("n = 500","n = 1000","n = 5000")
-par(mar=c(3,5,3,3))
-boxplot(Ba_hat, ylab=expression(hat(beta[a])),main="Boxplot of Simulation Study at n={500,1000,5000}")
+par(mar=c(4,5,4,4))
+boxplot(Ba_hat, names=c("n = 500","n = 1000","n = 5000"),ylab=expression(hat(beta[a])),main="Boxplot of Simulation Study at n={500,1000,5000}")
 abline(h=mu[1],col=2,lty=3)
+
+lm(Yi~A+x.1+x.2+x.3+x.4+x.5+x.6+x.7+x.8+x.9+x.10+x.11+x.12+x.13+x.14+x.15
+   ,data=card.data)
