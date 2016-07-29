@@ -5,6 +5,11 @@
 # method described in the Epidemics paper 
 # http//www.sciencedirect.com/science/article/pii/S1755436515000511
 
+# Input:   g = group g
+#         bp = vector of before peak case counts, with length g; bp[g] = before peak count for group g
+#         ap = vector of after peak case counts, with length g;  ap[g] = after peak count for group g
+#          N = population size
+
 est_ba = function(g,bp,ap,N){
   l = length(bp)
   zz=rep(0,N)
