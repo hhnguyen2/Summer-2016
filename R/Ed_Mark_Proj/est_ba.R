@@ -10,24 +10,51 @@
 #         ap = vector of after peak case counts, with length g;  ap[g] = after peak count for group g
 #          N = population size
 
-est_ba = function(g,bp,ap,N){
-  l = length(bp)
-  zz=rep(0,N)
-  for(i in 1:N){
+est_ba=function(bp,ap,N){
+  l=length(bp)
+  #results will be stored in matrix v; 1st column -estimates, 
+  # 2nd column - lower 95% bounds, 3rd column - upper 95% bounds 
+  v=matrix(0,nrow=l,ncol=3)
+  zz=matrix(0,nrow=N,ncol=l)
+  for(i in 1:N){ 
     x=rep(0,l)
     y=rep(0,l)
-    
     for(j in 1:l){
       x[j]=rgamma(1,(bp[j]+1),1)
       y[j]=rgamma(1,(ap[j]+1),1)
     }
-    
-    f1=x[g]/sum(x)
-    f2=y[g]/sum(y)
-    zz[i]=f1/f2
+    for(g in 1:l){
+      f1=x[g]/sum(x)
+      f2=y[g]/sum(y)
+      zz[i,g]=f1/f2
+    }
   }
-  v = rep(0,3)
-  v[1]=mean(zz)
-  v[2:3]=quantile(zz,c(0.025,0.975))
+  for(g in 1:l){
+    v[g,1]=mean(zz[,g])
+    v[g,2:3]=quantile(zz[,g],c(0.025,0.975))
+  }
   v
 }
+
+
+# est_ba = function(g,bp,ap,N){
+#   l = length(bp)
+#   zz=rep(0,N)
+#   for(i in 1:N){
+#     x=rep(0,l)
+#     y=rep(0,l)
+#     
+#     for(j in 1:l){
+#       x[j]=rgamma(1,(bp[j]+1),1)
+#       y[j]=rgamma(1,(ap[j]+1),1)
+#     }
+#     
+#     f1=x[g]/sum(x)
+#     f2=y[g]/sum(y)
+#     zz[i]=f1/f2
+#   }
+#   v = rep(0,3)
+#   v[1]=mean(zz)
+#   v[2:3]=quantile(zz,c(0.025,0.975))
+#   v
+# }
